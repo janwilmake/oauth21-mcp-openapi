@@ -1,0 +1,7 @@
+name = "oauth21_openapi"
+compatibility_date = "2024-12-05"
+assets = { directory= "./" }
+dev.port = 3000
+routes = [
+  { pattern = "oauth21openapi.wilmake.com", custom_domain = true },
+]

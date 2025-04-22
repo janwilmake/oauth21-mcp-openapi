@@ -1,0 +1,1151 @@
+{
+  "openapi": "3.0.3",
+
+  "info": {
+    "title": "OAuth 2.1 Authorization Framework",
+    "description": "# OAuth 2.1 Authorization Framework\n\nThis API specification describes the OAuth 2.1 authorization framework which enables a third-party application to obtain limited access to an HTTP service, either on behalf of a resource owner by orchestrating an approval interaction between the resource owner and the HTTP service, or by allowing the application to obtain access on its own behalf.\n\n## Key Concepts\n\n### Roles\n\n- **Resource Owner**: An entity capable of granting access to a protected resource. When the resource owner is a person, it is referred to as an end user.\n- **Resource Server**: The server hosting the protected resources, capable of accepting and responding to protected resource requests using access tokens.\n- **Client**: An application making protected resource requests on behalf of the resource owner and with its authorization.\n- **Authorization Server**: The server issuing access tokens to the client after successfully authenticating the resource owner and obtaining authorization.\n\n### Client Types\n\n- **Confidential Client**: A client that has credentials and can authenticate securely with the authorization server.\n- **Public Client**: A client without credentials, such as a native app or browser-based app, which cannot keep secrets.\n\n### Client Profiles\n\n- **Web Application**: Server-side application accessed via a browser with client credentials stored securely on the server.\n- **Browser-Based Application**: Client-side JavaScript application running in a browser with limited security capabilities.\n- **Native Application**: Application installed on a device with limited ability to store secrets securely.\n\n### Authorization Grant Types\n\n1. **Authorization Code**: Optimized for confidential and public clients to securely obtain access tokens with resource owner interaction via the browser. Enhanced with PKCE to protect against authorization code interception.\n\n2. **Client Credentials**: Used for server-to-server communication when the client is acting on its own behalf rather than on behalf of a user.\n\n3. **Refresh Token**: Used to obtain new access tokens when the current access token expires.\n\n4. **Token Exchange**: Used to exchange tokens from other identity providers (such as Twitter) for an access token from this authorization server.\n\n## Client Registration\n\nBefore using OAuth 2.1, clients must be registered with the authorization server. This can happen through several methods:\n\n### Static Registration\n\nTraditionally, client registration is performed manually through an administrative interface provided by the authorization server operator. In this case, developers receive client credentials (client_id and potentially client_secret) through an out-of-band process.\n\n### Dynamic Client Registration\n\nOAuth 2.1 supports dynamic client registration as defined in RFC 7591, allowing clients to programmatically register with authorization servers by sending client metadata to the registration endpoint.\n\nDynamic registration can be:\n\n- **Open Registration**: No initial access token is required, allowing any client to register\n- **Protected Registration**: Requires an initial access token that the client must obtain through a separate process\n\nRegistration can include:\n\n- **Software Statements**: JWT tokens signed by a trusted authority attesting to client metadata\n- **Client Metadata**: Configuration information like redirect URIs, grant types, token endpoint authentication methods\n\nAfter successful registration, the authorization server issues a client identifier and potentially a client secret if the client is confidential.\n\n## Server Metadata Discovery\n\nOAuth 2.1 provides a standardized way for clients to discover authorization server metadata, as defined in RFC 8414. This allows clients to automatically configure themselves without hardcoding endpoint URLs or server capabilities.\n\nThe metadata is published as a JSON document at a well-known location derived from the authorization server's issuer identifier. The document includes information such as:\n\n- Authorization and token endpoint URLs\n- Supported scopes and grant types\n- Supported client authentication methods\n- Supported signing algorithms\n- Other server capabilities and configuration parameters\n\nBy using server metadata discovery, clients can dynamically adapt to different authorization servers without manual configuration changes.\n\n## Authorization Flow\n\n### Authorization Code Grant Flow\n\n1. **Client Initiates Flow**: The client directs the resource owner's browser to the authorization server's authorization endpoint with parameters including client_id, redirect_uri, response_type=code, scope, state, and PKCE parameters (code_challenge, code_challenge_method).\n\n2. **Resource Owner Authentication**: The authorization server authenticates the resource owner (usually via a login form) and establishes whether the resource owner grants or denies the client's access request.\n\n3. **Authorization Response**: The authorization server redirects back to the client's redirect_uri with an authorization code and the state parameter.\n\n4. **Token Request**: The client makes a request to the token endpoint with the authorization code, code_verifier, and client authentication (if confidential client).\n\n5. **Token Response**: The authorization server validates the request and issues an access token and optionally a refresh token.\n\n6. **Resource Access**: The client uses the access token to access protected resources on the resource server.\n\n### PKCE (Proof Key for Code Exchange)\n\nPKCE is required for all authorization code grant flows to prevent authorization code interception attacks:\n\n1. The client generates a cryptographically random code_verifier.\n2. The client derives a code_challenge from the code_verifier using S256 (preferred) or plain transformation.\n3. The client includes the code_challenge in the authorization request.\n4. The authorization server associates the code_challenge with the issued authorization code.\n5. When exchanging the authorization code, the client sends the original code_verifier.\n6. The authorization server verifies that the code_challenge derived from the code_verifier matches the original code_challenge.\n\n### Client Credentials Grant Flow\n\n1. The client authenticates with the authorization server.\n2. The client requests an access token from the token endpoint using the client_credentials grant type.\n3. The authorization server validates the client credentials and issues an access token.\n\n### Refresh Token Grant Flow\n\n1. The client makes a request to the token endpoint with the refresh token and client authentication.\n2. The authorization server validates the refresh token and client authentication and issues a new access token.\n\n### Twitter Token Exchange Flow\n\nThis flow allows clients that have already obtained a Twitter access token to exchange it for an access token from this authorization server, without requiring the user to go through another authorization process.\n\n1. **Client Obtains Twitter Token**: The client obtains a valid access token from Twitter using Twitter's OAuth flow.\n\n2. **Token Exchange Request**: The client makes a POST request to the token endpoint with the following parameters:\n   - grant_type=urn:ietf:params:oauth:grant-type:token-exchange\n   - subject_token={twitter_access_token}\n   - subject_token_type=urn:ietf:params:oauth:token-type:access_token\n   - subject_issuer=twitter\n   - client_id and client_authentication if required\n\n3. **Token Exchange Response**: The authorization server validates the Twitter token, and if valid, issues its own access token and optionally a refresh token.\n\n4. **Resource Access**: The client can now use the issued access token to access protected resources on the resource server.\n\n## Security Considerations\n\n- All client-server communication must use TLS.\n- Authorization codes are single-use and short-lived (max 10 minutes recommended).\n- Refresh tokens for public clients must be either sender-constrained or use refresh token rotation.\n- Redirect URIs must be registered and validated using exact string matching.\n- Bearer tokens must only be sent in the Authorization header or request body, never in the URL.\n- Clients must prevent cross-site request forgery attacks using state parameter or PKCE.\n- The implicit grant and password grant from OAuth 2.0 are not supported in OAuth 2.1.\n\nThis API specification describes the endpoints and parameters used in OAuth 2.1.",
+    "version": "draft-ietf-oauth-v2-1-12",
+    "contact": {
+      "name": "OAuth Working Group",
+      "url": "https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-12"
+    }
+  },
+
+  "servers": [
+    {
+      "url": "https://authorization-server.example.com",
+      "description": "Example Authorization Server"
+    }
+  ],
+  "paths": {
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "tags": ["Authorization Server Metadata"],
+        "summary": "Authorization Server Metadata Endpoint",
+        "description": "This endpoint returns a JSON document containing metadata about the authorization server's configuration, including all necessary endpoints and public key location information. The metadata helps clients interact with the authorization server by providing information about the server's capabilities and endpoint locations.",
+        "responses": {
+          "200": {
+            "description": "A JSON object containing the authorization server's metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["issuer", "response_types_supported"],
+                  "properties": {
+                    "issuer": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "REQUIRED. The authorization server's issuer identifier, which is a URL that uses the 'https' scheme and has no query or fragment components."
+                    },
+                    "authorization_endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL of the authorization server's authorization endpoint. This is REQUIRED unless no grant types are supported that use the authorization endpoint."
+                    },
+                    "token_endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL of the authorization server's token endpoint. This is REQUIRED unless only the implicit grant type is supported."
+                    },
+                    "jwks_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL of the authorization server's JWK Set document containing the signing key(s) the client uses to validate signatures from the authorization server."
+                    },
+                    "registration_endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL of the authorization server's OAuth 2.0 Dynamic Client Registration endpoint."
+                    },
+                    "scopes_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "RECOMMENDED. JSON array containing a list of the OAuth 2.0 'scope' values that this authorization server supports."
+                    },
+                    "response_types_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "REQUIRED. JSON array containing a list of the OAuth 2.0 'response_type' values that this authorization server supports."
+                    },
+                    "response_modes_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of the OAuth 2.0 'response_mode' values that this authorization server supports. Default is [\"query\", \"fragment\"]."
+                    },
+                    "grant_types_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of the OAuth 2.0 grant type values that this authorization server supports. Default is [\"authorization_code\", \"implicit\"]."
+                    },
+                    "token_endpoint_auth_methods_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of client authentication methods supported by the token endpoint. Default is \"client_secret_basic\"."
+                    },
+                    "token_endpoint_auth_signing_alg_values_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of the JWS signing algorithms supported by the token endpoint for JWT authentication."
+                    },
+                    "service_documentation": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL of a page containing human-readable information for developers."
+                    },
+                    "ui_locales_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. Languages and scripts supported for the user interface, represented as a JSON array of BCP 47 language tag values."
+                    },
+                    "op_policy_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL that the authorization server provides to read about the authorization server's requirements on how the client can use the data provided."
+                    },
+                    "op_tos_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL that the authorization server provides to read about the authorization server's terms of service."
+                    },
+                    "revocation_endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL of the authorization server's OAuth 2.0 revocation endpoint."
+                    },
+                    "revocation_endpoint_auth_methods_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of client authentication methods supported by the revocation endpoint."
+                    },
+                    "revocation_endpoint_auth_signing_alg_values_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of the JWS signing algorithms supported by the revocation endpoint for JWT authentication."
+                    },
+                    "introspection_endpoint": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. URL of the authorization server's OAuth 2.0 introspection endpoint."
+                    },
+                    "introspection_endpoint_auth_methods_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of client authentication methods supported by the introspection endpoint."
+                    },
+                    "introspection_endpoint_auth_signing_alg_values_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of the JWS signing algorithms supported by the introspection endpoint for JWT authentication."
+                    },
+                    "code_challenge_methods_supported": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "OPTIONAL. JSON array containing a list of PKCE code challenge methods supported by this authorization server."
+                    },
+                    "signed_metadata": {
+                      "type": "string",
+                      "description": "OPTIONAL. A JWT containing metadata values about the authorization server as claims."
+                    }
+                  }
+                },
+                "examples": {
+                  "metadata_response": {
+                    "value": {
+                      "issuer": "https://server.example.com",
+                      "authorization_endpoint": "https://server.example.com/authorize",
+                      "token_endpoint": "https://server.example.com/token",
+                      "token_endpoint_auth_methods_supported": [
+                        "client_secret_basic",
+                        "private_key_jwt"
+                      ],
+                      "token_endpoint_auth_signing_alg_values_supported": [
+                        "RS256",
+                        "ES256"
+                      ],
+                      "jwks_uri": "https://server.example.com/jwks.json",
+                      "registration_endpoint": "https://server.example.com/register",
+                      "scopes_supported": [
+                        "openid",
+                        "profile",
+                        "email",
+                        "address",
+                        "phone",
+                        "offline_access"
+                      ],
+                      "response_types_supported": ["code", "code token"],
+                      "grant_types_supported": [
+                        "authorization_code",
+                        "client_credentials",
+                        "refresh_token",
+                        "urn:ietf:params:oauth:grant-type:token-exchange"
+                      ],
+                      "service_documentation": "https://server.example.com/service_documentation.html",
+                      "ui_locales_supported": [
+                        "en-US",
+                        "en-GB",
+                        "en-CA",
+                        "fr-FR",
+                        "fr-CA"
+                      ],
+                      "code_challenge_methods_supported": ["S256", "plain"]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+
+    "/authorize": {
+      "get": {
+        "tags": ["Authorization Endpoint"],
+        "summary": "Authorization Endpoint",
+        "description": "The authorization endpoint is used to interact with the resource owner and obtain an authorization grant. The resource owner will be redirected to this endpoint by the client to initiate the authorization process.",
+        "parameters": [
+          {
+            "name": "response_type",
+            "in": "query",
+            "description": "REQUIRED. Must be 'code' for the authorization code grant type.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["code"]
+            }
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "description": "REQUIRED. The client identifier issued to the client during the registration process.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirect_uri",
+            "in": "query",
+            "description": "REQUIRED if multiple redirect URIs are registered for this client. OPTIONAL if only one redirect URI is registered. The URI to which the authorization server will redirect the user-agent after authorization is complete.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "description": "OPTIONAL. A space-delimited list of scope values indicating the access rights requested by the client.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "RECOMMENDED. An opaque value used by the client to maintain state between the request and callback. The authorization server includes this value when redirecting back to the client.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code_challenge",
+            "in": "query",
+            "description": "REQUIRED. A challenge derived from the code_verifier that is sent in the authorization request, to be verified against the code_verifier later.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9\\-\\._~]{43,128}$"
+            }
+          },
+          {
+            "name": "code_challenge_method",
+            "in": "query",
+            "description": "OPTIONAL. Method used to derive the code challenge. Defaults to 'plain' if not present. S256 is strongly recommended.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["S256", "plain"],
+              "default": "plain"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "The authorization server redirects the user-agent back to the client's redirect URI with either an authorization code or an error.",
+            "headers": {
+              "Location": {
+                "description": "The redirect URI including the authorization code or error information",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "examples": {
+                  "success": {
+                    "value": "https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA&state=xyz&iss=https%3A%2F%2Fauthorization-server.example.com"
+                  },
+                  "error": {
+                    "value": "https://client.example.com/cb?error=access_denied&state=xyz&iss=https%3A%2F%2Fauthorization-server.example.com"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/token": {
+      "post": {
+        "tags": ["Token Endpoint"],
+        "summary": "Token Endpoint",
+        "description": "The token endpoint is used by the client to obtain an access token by presenting its authorization grant, refresh token, or by exchanging a token from another provider.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": [
+                      "authorization_code",
+                      "client_credentials",
+                      "refresh_token",
+                      "urn:ietf:params:oauth:grant-type:token-exchange"
+                    ],
+                    "description": "REQUIRED. The type of grant the client is presenting."
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "REQUIRED when grant_type is 'authorization_code'. The authorization code received from the authorization server."
+                  },
+                  "code_verifier": {
+                    "type": "string",
+                    "description": "REQUIRED when grant_type is 'authorization_code' and code_challenge was included in the authorization request. The original random string generated by the client."
+                  },
+                  "refresh_token": {
+                    "type": "string",
+                    "description": "REQUIRED when grant_type is 'refresh_token'. The refresh token previously issued to the client."
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "OPTIONAL when grant_type is 'refresh_token' or 'client_credentials'. A space-delimited list of scopes. When refreshing a token, requested scope must not include scopes not originally granted."
+                  },
+                  "client_id": {
+                    "type": "string",
+                    "description": "REQUIRED when the client is not authenticating with the authorization server, such as for public clients."
+                  },
+                  "subject_token": {
+                    "type": "string",
+                    "description": "REQUIRED when grant_type is 'urn:ietf:params:oauth:grant-type:token-exchange'. The token to be exchanged (e.g., Twitter access token)."
+                  },
+                  "subject_token_type": {
+                    "type": "string",
+                    "description": "REQUIRED when grant_type is 'urn:ietf:params:oauth:grant-type:token-exchange'. The type of the subject token.",
+                    "example": "urn:ietf:params:oauth:token-type:access_token"
+                  },
+                  "actor_token": {
+                    "type": "string",
+                    "description": "OPTIONAL. Additional token that identifies the party that is permitted to use the requested security token."
+                  },
+                  "actor_token_type": {
+                    "type": "string",
+                    "description": "OPTIONAL. The type of the actor token.",
+                    "example": "urn:ietf:params:oauth:token-type:jwt"
+                  },
+                  "subject_issuer": {
+                    "type": "string",
+                    "description": "OPTIONAL. Identifies the issuer of the subject token (e.g., 'twitter').",
+                    "example": "twitter"
+                  },
+                  "resource": {
+                    "type": "string",
+                    "description": "OPTIONAL. A URI that indicates the target service or resource where the client intends to use the requested security token."
+                  },
+                  "audience": {
+                    "type": "string",
+                    "description": "OPTIONAL. The logical name of the target service where the client intends to use the requested security token."
+                  },
+                  "requested_token_type": {
+                    "type": "string",
+                    "description": "OPTIONAL. An identifier, as described in the OAuth Token Type Identifiers registry, for the type of token requested.",
+                    "example": "urn:ietf:params:oauth:token-type:access_token"
+                  }
+                },
+                "required": ["grant_type"]
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "clientAuthentication": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "The authorization server issues an access token and optional refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["access_token", "token_type"],
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "The access token issued by the authorization server."
+                    },
+                    "token_type": {
+                      "type": "string",
+                      "description": "The type of the token issued. Usually 'Bearer'.",
+                      "example": "Bearer"
+                    },
+                    "expires_in": {
+                      "type": "integer",
+                      "description": "RECOMMENDED. The lifetime in seconds of the access token."
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "OPTIONAL. The refresh token, which can be used to obtain new access tokens."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "description": "REQUIRED if the scope granted is different from the scope requested. OPTIONAL otherwise."
+                    },
+                    "issued_token_type": {
+                      "type": "string",
+                      "description": "OPTIONAL. The token type identifier for the issued token. Included in token exchange responses.",
+                      "example": "urn:ietf:params:oauth:token-type:access_token"
+                    }
+                  }
+                },
+                "examples": {
+                  "access_token_response": {
+                    "value": {
+                      "access_token": "2YotnFZFEjr1zCsicMWpAA",
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "refresh_token": "tGzv3JOkF0XG5Qx2TlKWIA",
+                      "scope": "read write"
+                    }
+                  },
+                  "token_exchange_response": {
+                    "value": {
+                      "access_token": "aYJV9s3fD71KwrCmPkQfT8",
+                      "token_type": "Bearer",
+                      "expires_in": 3600,
+                      "refresh_token": "bX7pQ2vN8gK4HsT6LjR3Zy",
+                      "scope": "read write",
+                      "issued_token_type": "urn:ietf:params:oauth:token-type:access_token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is invalid or unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_request",
+                        "invalid_client",
+                        "invalid_grant",
+                        "unauthorized_client",
+                        "unsupported_grant_type",
+                        "invalid_scope",
+                        "invalid_target",
+                        "invalid_token",
+                        "unsupported_token_type"
+                      ],
+                      "description": "A single error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "OPTIONAL. Human-readable text providing additional information."
+                    },
+                    "error_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. A URI identifying a human-readable web page with information about the error."
+                    }
+                  }
+                },
+                "examples": {
+                  "invalid_request_error": {
+                    "value": {
+                      "error": "invalid_request"
+                    }
+                  },
+                  "invalid_grant_error": {
+                    "value": {
+                      "error": "invalid_grant",
+                      "error_description": "The provided authorization code has expired"
+                    }
+                  },
+                  "invalid_token_error": {
+                    "value": {
+                      "error": "invalid_token",
+                      "error_description": "The provided Twitter token is invalid or expired"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Client authentication failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": ["invalid_client"],
+                      "description": "A single error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "OPTIONAL. Human-readable text providing additional information."
+                    },
+                    "error_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "OPTIONAL. A URI identifying a human-readable web page with information about the error."
+                    }
+                  }
+                },
+                "examples": {
+                  "invalid_client_error": {
+                    "value": {
+                      "error": "invalid_client"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "basic": {
+                    "value": "Basic realm=\"oauth\""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "tags": ["Dynamic Client Registration"],
+        "summary": "Client Registration Endpoint",
+        "description": "The client registration endpoint is used by clients to dynamically register with the authorization server by providing their metadata. This allows clients to obtain a client identifier and optionally a client secret for use in OAuth 2.1 flows. The registration endpoint may be protected with an initial access token or may support open registration without authentication.",
+        "security": [
+          {
+            "initialAccessToken": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "redirect_uris": {
+                    "type": "array",
+                    "description": "Array of redirection URI strings for use in redirect-based flows. Required for clients using authorization code flow.",
+                    "items": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "token_endpoint_auth_method": {
+                    "type": "string",
+                    "description": "The requested authentication method for the token endpoint.",
+                    "enum": [
+                      "none",
+                      "client_secret_post",
+                      "client_secret_basic"
+                    ],
+                    "default": "client_secret_basic"
+                  },
+                  "grant_types": {
+                    "type": "array",
+                    "description": "Array of OAuth 2.1 grant type strings that the client can use.",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "authorization_code",
+                        "client_credentials",
+                        "refresh_token",
+                        "urn:ietf:params:oauth:grant-type:token-exchange",
+                        "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                        "urn:ietf:params:oauth:grant-type:saml2-bearer"
+                      ]
+                    },
+                    "default": ["authorization_code"]
+                  },
+                  "response_types": {
+                    "type": "array",
+                    "description": "Array of the OAuth 2.1 response types that the client can use.",
+                    "items": {
+                      "type": "string",
+                      "enum": ["code"]
+                    },
+                    "default": ["code"]
+                  },
+                  "client_name": {
+                    "type": "string",
+                    "description": "Human-readable name of the client to be presented to the end-user."
+                  },
+                  "client_uri": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL of a web page providing information about the client."
+                  },
+                  "logo_uri": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL that references a logo for the client."
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "String containing a space-separated list of scope values that the client can use when requesting access tokens."
+                  },
+                  "contacts": {
+                    "type": "array",
+                    "description": "Array of strings representing ways to contact people responsible for this client, typically email addresses.",
+                    "items": {
+                      "type": "string",
+                      "format": "email"
+                    }
+                  },
+                  "tos_uri": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL that points to a human-readable terms of service document for the client."
+                  },
+                  "policy_uri": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL that points to a human-readable privacy policy document for the client."
+                  },
+                  "jwks_uri": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "URL for the client's JSON Web Key Set document."
+                  },
+                  "jwks": {
+                    "type": "object",
+                    "description": "Client's JSON Web Key Set document value. Cannot be used with jwks_uri."
+                  },
+                  "software_id": {
+                    "type": "string",
+                    "description": "A unique identifier assigned by the client developer or software publisher to identify the client software."
+                  },
+                  "software_version": {
+                    "type": "string",
+                    "description": "A version identifier for the client software identified by software_id."
+                  },
+                  "software_statement": {
+                    "type": "string",
+                    "description": "A software statement containing client metadata values about the client software as claims. This is a JWT string value containing the entire signed JWT."
+                  }
+                }
+              },
+              "examples": {
+                "simple_registration": {
+                  "value": {
+                    "redirect_uris": [
+                      "https://client.example.org/callback",
+                      "https://client.example.org/callback2"
+                    ],
+                    "client_name": "My Example Client",
+                    "client_uri": "https://client.example.org",
+                    "token_endpoint_auth_method": "client_secret_basic",
+                    "scope": "read write",
+                    "contacts": ["dev@client.example.org"]
+                  }
+                },
+                "with_software_statement": {
+                  "value": {
+                    "redirect_uris": [
+                      "https://client.example.org/callback",
+                      "https://client.example.org/callback2"
+                    ],
+                    "software_statement": "eyJhbGciOiJSUzI1NiJ9.eyJzb2Z0d2FyZV9pZCI6IjROUkIxLTBYWkFCWkk5RTYtNVNNM1IiLCJjbGllbnRfbmFtZSI6IkV4YW1wbGUgU3RhdGVtZW50LWJhc2VkIENsaWVudCIsImNsaWVudF91cmkiOiJodHRwczovL2NsaWVudC5leGFtcGxlLm5ldC8ifQ.GHfL4QNIrQwL18BSRdE595T9jbzqa06R9BT8w409x9oIcKaZo_mt15riEXHazdISUvDIZhtiyNrSHQ8K4TvqWxH6uJgcmoodZdPwmWRIEYbQDLqPNxREtYn05X3AR7ia4FRjQ2ojZjk5fJqJdQ-JcfxyhK-P8BAWBd6I2LLA77IG32xtbhxYfHX7VhuU5ProJO8uvu3Ayv4XRhLZJY4yKfmyjiiKiPNe-Ia4SMy_d_QSWxskU5XIQl5Sa2YRPMbDRXttm2TfnZM1xx70DoYi8g6czz-CPGRi4SW_S2RKHIJfIjoI3zTJ0Y2oe0_EJAiXbL6OyF9S5tKxDXV8JIndSA",
+                    "scope": "read write"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["client_id"],
+                  "properties": {
+                    "client_id": {
+                      "type": "string",
+                      "description": "OAuth 2.1 client identifier string"
+                    },
+                    "client_secret": {
+                      "type": "string",
+                      "description": "OAuth 2.1 client secret string. Only issued to confidential clients."
+                    },
+                    "client_id_issued_at": {
+                      "type": "integer",
+                      "description": "Time at which the client identifier was issued expressed as seconds since 1970-01-01T00:00:00Z"
+                    },
+                    "client_secret_expires_at": {
+                      "type": "integer",
+                      "description": "Time at which the client secret will expire expressed as seconds since 1970-01-01T00:00:00Z. A value of 0 means it does not expire."
+                    },
+                    "redirect_uris": {
+                      "type": "array",
+                      "description": "Array of registered redirection URI strings",
+                      "items": {
+                        "type": "string",
+                        "format": "uri"
+                      }
+                    },
+                    "token_endpoint_auth_method": {
+                      "type": "string",
+                      "description": "Requested authentication method for the token endpoint"
+                    },
+                    "grant_types": {
+                      "type": "array",
+                      "description": "Array of OAuth 2.1 grant types that the client may use",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "response_types": {
+                      "type": "array",
+                      "description": "Array of the OAuth 2.1 response types that the client may use",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "client_name": {
+                      "type": "string",
+                      "description": "Human-readable name of the client"
+                    },
+                    "client_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL of a web page providing information about the client"
+                    },
+                    "logo_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL that references a logo for the client"
+                    },
+                    "scope": {
+                      "type": "string",
+                      "description": "Space-separated list of OAuth 2.1 scope values"
+                    },
+                    "contacts": {
+                      "type": "array",
+                      "description": "Array of strings representing contact information",
+                      "items": {
+                        "type": "string",
+                        "format": "email"
+                      }
+                    },
+                    "tos_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL for the client's terms of service document"
+                    },
+                    "policy_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL for the client's privacy policy document"
+                    },
+                    "jwks_uri": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL for the client's JSON Web Key Set document"
+                    },
+                    "jwks": {
+                      "type": "object",
+                      "description": "Client's JSON Web Key Set document value"
+                    },
+                    "software_id": {
+                      "type": "string",
+                      "description": "Identifier for the client software"
+                    },
+                    "software_version": {
+                      "type": "string",
+                      "description": "Version identifier for the client software"
+                    },
+                    "software_statement": {
+                      "type": "string",
+                      "description": "Software statement provided in the registration request"
+                    }
+                  }
+                },
+                "examples": {
+                  "registration_response": {
+                    "value": {
+                      "client_id": "s6BhdRkqt3",
+                      "client_secret": "cf136dc3c1fc93f31185e5885805d",
+                      "client_id_issued_at": 2893256800,
+                      "client_secret_expires_at": 2893276800,
+                      "redirect_uris": [
+                        "https://client.example.org/callback",
+                        "https://client.example.org/callback2"
+                      ],
+                      "grant_types": ["authorization_code", "refresh_token"],
+                      "client_name": "My Example Client",
+                      "client_uri": "https://client.example.org",
+                      "token_endpoint_auth_method": "client_secret_basic",
+                      "scope": "read write"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "enum": [
+                        "invalid_redirect_uri",
+                        "invalid_client_metadata",
+                        "invalid_software_statement",
+                        "unapproved_software_statement"
+                      ],
+                      "description": "A single error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "Human-readable text providing additional information"
+                    }
+                  }
+                },
+                "examples": {
+                  "invalid_redirect_uri_error": {
+                    "value": {
+                      "error": "invalid_redirect_uri",
+                      "error_description": "The redirection URI http://sketchy.example.com is not allowed by this server."
+                    }
+                  },
+                  "invalid_client_metadata_error": {
+                    "value": {
+                      "error": "invalid_client_metadata",
+                      "error_description": "The grant type 'authorization_code' must be registered along with the response type 'code'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing initial access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["error"],
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "A single error code"
+                    },
+                    "error_description": {
+                      "type": "string",
+                      "description": "Human-readable text providing additional information"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resource": {
+      "get": {
+        "tags": ["Resource Server"],
+        "summary": "Protected Resource Endpoint Example",
+        "description": "This is an example of how a resource server might protect resources using OAuth 2.1 access tokens.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access token is valid and has sufficient scope to access the resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "description": "The protected resource"
+                    }
+                  }
+                },
+                "examples": {
+                  "resource_data": {
+                    "value": {
+                      "data": "Protected resource content"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, expired, revoked, malformed, or invalid for other reasons",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "bearer_error": {
+                    "value": "Bearer realm=\"example\", error=\"invalid_token\", error_description=\"The access token expired\""
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The access token does not contain sufficient scope to access this resource",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "insufficient_scope": {
+                    "value": "Bearer realm=\"example\", error=\"insufficient_scope\", scope=\"read write\""
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Resource Server"],
+        "summary": "Protected Resource Endpoint Example with form-encoded token",
+        "description": "Example of a resource server endpoint that accepts access tokens in the request body (only when appropriate for POST requests).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "access_token": {
+                    "type": "string",
+                    "description": "The access token"
+                  },
+                  "other_param": {
+                    "type": "string",
+                    "description": "Other resource-specific parameters"
+                  }
+                },
+                "required": ["access_token"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access token is valid and has sufficient scope to access the resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string",
+                      "description": "The protected resource"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The access token is missing, expired, revoked, malformed, or invalid for other reasons",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "bearer_error": {
+                    "value": "Bearer realm=\"example\", error=\"invalid_token\", error_description=\"The access token expired\""
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The access token does not contain sufficient scope to access this resource",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "examples": {
+                  "insufficient_scope": {
+                    "value": "Bearer realm=\"example\", error=\"insufficient_scope\", scope=\"read write\""
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A single ASCII error code"
+          },
+          "error_description": {
+            "type": "string",
+            "description": "OPTIONAL. Human-readable ASCII text providing additional information"
+          },
+          "error_uri": {
+            "type": "string",
+            "format": "uri",
+            "description": "OPTIONAL. A URI identifying a human-readable web page with information about the error"
+          }
+        }
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": ["access_token", "token_type"],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "The access token issued by the authorization server"
+          },
+          "token_type": {
+            "type": "string",
+            "description": "The type of the token issued. Value is case insensitive.",
+            "example": "Bearer"
+          },
+          "expires_in": {
+            "type": "integer",
+            "description": "RECOMMENDED. The lifetime in seconds of the access token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "OPTIONAL. The refresh token, which can be used to obtain new access tokens"
+          },
+          "scope": {
+            "type": "string",
+            "description": "REQUIRED if the granted scope differs from the requested scope. OPTIONAL otherwise."
+          },
+          "issued_token_type": {
+            "type": "string",
+            "description": "OPTIONAL. The token type identifier for the issued token. Used in token exchange responses.",
+            "example": "urn:ietf:params:oauth:token-type:access_token"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "clientAuthentication": {
+        "type": "http",
+        "scheme": "basic",
+        "description": "Client authentication at the token endpoint using HTTP Basic Authentication or including client credentials in the request body"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Bearer token authentication for accessing protected resources"
+      },
+      "initialAccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Optional initial access token used to authorize access to the client registration endpoint"
+      }
+    }
+  }
+}
